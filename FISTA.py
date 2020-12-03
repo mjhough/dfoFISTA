@@ -6,8 +6,9 @@ onto the desired set
 f = g + h, g is convex, differentiable, and dom(g) = R^n, and h is
 convex but not necessarily differentiable
 
-Input: (grad_g, h, p, x0, L, max_iter)
+Input: (grad_g, H, p, x0, L, max_iter)
 - (function handle) grad_g = grad(g), where g is given by f = g + h
+- (function handle) H is the Hessian of g
 - (function handle) p is a projection function that returns a vector in R^n
 - x0 is the initial iterate in R^n
 - L = Lf
@@ -16,21 +17,28 @@ Input: (grad_g, h, p, x0, L, max_iter)
 Output:
 - Iterate x at k=max_iter
 """
-def FISTA(grad_g,p,x0,L,num_iter):
+def FISTA(grad_g,H,p,x0,num_iter,callback=None):
     # Init
     y = x = x0; t = 1
 
-   for k in range(max_iter):
-       # a) take GD step and project
+    for k in range(num_iter):
+       # a) pick L_k > 0
+       L = np.linalg.norm(H(x))
+
+       # b) take GD step and project
        w = y - (1/L)*grad_g(y)
        prev_x = x
        x = p(w)
 
-       # b) compute next t
+       # c) compute next t
        prev_t = t
        t = (1+np.sqrt(1+4*(t**2)))/2
 
-       # c) compute next y
+       # d) compute next y
        y = x + ((prev_t - 1)/(t))*(x - prev_x)
+
+       if callback is not None:
+           print(x)
+           callback(k,x)
 
     return x
