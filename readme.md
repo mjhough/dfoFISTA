@@ -1,4 +1,4 @@
-#### Modified FISTA with projection
+#### Projected gradient descent (special case of FISTA)
 
 This repo implements the `FISTA(h,gh,p,x0,L,max_iter)` function, where `h,gh,p` are function handles, and
 - `h = f + g` where g is a function from a Euclidean space to `(-infty,infty]` that is proper closed and convex, and `f` is a function from the same Euclidean space to the reals s.t. it is `Lf`-smooth and convex.
