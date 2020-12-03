@@ -8,3 +8,5 @@ This repo implements the `FISTA(h,gh,p,x0,L,max_iter)` function, where `h,gh,p` 
 - `max_itr` is the maximum number of iterations allowed.
 
 In `main.py` FISTA is run on quadratic functions on R^n with symmetric PSD Hessian and varying projection functions.
+
+For more information on proximal gradient descent and projected gradient descent, see [here](https://hough.ai/2020/12/03/prox-gd/).
