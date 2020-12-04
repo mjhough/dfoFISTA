@@ -38,7 +38,6 @@ def FISTA(grad_g,H,p,x0,num_iter,callback=None):
        y = x + ((prev_t - 1)/(t))*(x - prev_x)
 
        if callback is not None:
-           print(x)
            callback(k,x)
 
     return x

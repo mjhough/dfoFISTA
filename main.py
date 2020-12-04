@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
 from FISTA import FISTA
 
 # Unconstrained projection
@@ -15,7 +17,7 @@ Input:
 Output: x projected onto the box constraint
 '''
 def p_box(x,l,u):
-    return np.minimum([np.maximum([x,l]), u])
+    return np.minimum(np.maximum(x,l), u)
 
 '''
 Ball constrained projection
@@ -29,7 +31,7 @@ def p_ball(x,c,r):
     return c + (r/np.max([np.linalg.norm(x-c),r]))*(x-c)
 
 '''
-Random l1-regularized least squares function in R^n
+Random l1-regularized linear least squares function in R^n
 (1/2)*||Ax-b||_2^2 + lmbda*||x||_1
 Input:
 - n: size of n x n matrix A
@@ -46,27 +48,97 @@ def gen_func(A,b,lmbda):
     return f,grad,H
 
 
-def callback_func(k,x):
-    print(f(np.array(x)))
+if __name__ == "__main__":
+    n=2
+    A = np.random.rand(n,n)
+    x = np.random.rand(2) # soln
+    b = A@x
+    lmbda = 0.01
 
-n=2
-A = np.random.rand(n,n)
-x = np.random.rand(2) # soln
-b = A@x
-lmbda = 0.01
+    # Num iterations and starting point
+    num_iter = 100
+    start = np.array([-5,-4])
 
-# generate function
-f,grad,H = gen_func(A,b,lmbda)
+    # Change constraint here
+    constraint = None
 
-# generate projection function
-p = lambda x: p_ball(x,np.array([1,1]),0.2)
+    iters = np.empty((num_iter+1,2))
+    iters[0,:] = start
+    res = [np.linalg.norm(x-start)]
+    # Callback function
+    def callback_func(curr_iter,xk):
+        res.append(np.linalg.norm(x - xk))
+        iters[curr_iter+1,:] = xk
 
-start = np.array([3,-2])
-# print(FISTA(grad,H,p_uc,start,20,callback_func))
-print(FISTA(grad,H,p,start,2000))
-print(x)
+    # generate function
+    f,grad,H = gen_func(A,b,lmbda)
 
+    # generate projection functions
+    ball_c = [1,1]
+    ball_r = 2
+    pball = lambda x: p_ball(x,np.array(ball_c),ball_r)
 
-# f,grad,H = gen_func(3,np.zeros(3))
-# x = np.ones(3)
-# print(f(x), grad(x), H(x), H(x).T)
+    box_l = np.array([-1,-1])
+    box_u = np.array([1,1])
+    pbox = lambda x: p_box(x,box_l,box_u)
+
+    # Plotting the function contour and iterates with no constraint
+    if constraint == None:
+        x_pred = FISTA(grad,H,p_uc,start,num_iter,callback_func)
+        print(x)
+        print(x_pred)
+    
+        if n == 2:
+            fig,ax = plt.subplots()
+            xx = yy = np.arange(-5,5,0.5)
+            X,Y = np.meshgrid(xx,yy,sparse=True)
+            def f2(x1,x2):
+                return f(np.array([x1,x2]))
+            f2_vec = np.vectorize(f2)
+            zz = f2_vec(X,Y)
+            ax.contourf(xx,yy,zz)
+            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+
+    # Plotting the function contour and iterates with ball constraint
+    if constraint == 'ball':
+        x_pred = FISTA(grad,H,pball,start,num_iter,callback_func)
+        print(x)
+        print(x_pred)
+
+        if n == 2:
+            fig,ax = plt.subplots()
+            xx = yy = np.arange(-5,5,0.5)
+            X,Y = np.meshgrid(xx,yy,sparse=True)
+            def f2(x1,x2):
+                return f(np.array([x1,x2]))
+            f2_vec = np.vectorize(f2)
+            zz = f2_vec(X,Y)
+            ax.contourf(xx,yy,zz)
+            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+            cir = plt.Circle((1,1), ball_r, fill=False, color='w')
+            ax.add_patch(cir)
+
+    # Plotting the function contour and iterates with box constraint
+    if constraint == 'box':
+        x_pred = FISTA(grad,H,pbox,start,num_iter,callback_func)
+        print(x)
+        print(x_pred)
+
+        if n == 2:
+            fig,ax = plt.subplots()
+            xx = yy = np.arange(-5,5,0.5)
+            X,Y = np.meshgrid(xx,yy,sparse=True)
+            def f2(x1,x2):
+                return f(np.array([x1,x2]))
+            f2_vec = np.vectorize(f2)
+            zz = f2_vec(X,Y)
+            ax.contourf(xx,yy,zz)
+            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+            rec = plt.Rectangle((box_l[0], box_l[1]), box_u[0] - box_l[0],
+                    box_u[1] - box_l[1], fill=False, color='w')
+            ax.add_patch(rec)
+
+    # Plot residuals
+    plt.figure()
+    plt.plot(range(0,num_iter+1),res)
+    plt.show()
