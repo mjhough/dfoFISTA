@@ -43,15 +43,15 @@ def gen_func(A,b,lmbda):
         return (np.linalg.norm(A@x - b)**2)/2 + lmbda*np.linalg.norm(x, ord=1)
     def grad(x):
         return A.T @ (A@x - b)
-    def H(x):
+    def H():
         return A.T @ A
     return f,grad,H
 
 
 if __name__ == "__main__":
     n=2
-    A = np.random.rand(n,n)
-    x = np.random.rand(2) # soln
+    A = np.random.uniform(low=-5, high=5, size=(n,n))
+    x = np.random.uniform(low=-5, high=5, size=(n,)) # soln
     b = A@x
     lmbda = 0.01
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     start = np.array([-5,-4])
 
     # Change constraint here
-    constraint = None
+    constraint = 'box'
 
     iters = np.empty((num_iter+1,2))
     iters[0,:] = start
@@ -72,6 +72,7 @@ if __name__ == "__main__":
 
     # generate function
     f,grad,H = gen_func(A,b,lmbda)
+    L = np.linalg.norm(H())
 
     # generate projection functions
     ball_c = [1,1]
@@ -84,13 +85,13 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with no constraint
     if constraint == None:
-        x_pred = FISTA(grad,H,p_uc,start,num_iter,callback_func)
+        x_pred = FISTA(grad,L,p_uc,start,num_iter,callback_func)
         print(x)
         print(x_pred)
     
         if n == 2:
             fig,ax = plt.subplots()
-            xx = yy = np.arange(-5,5,0.5)
+            xx = yy = np.arange(-6,6,0.5)
             X,Y = np.meshgrid(xx,yy,sparse=True)
             def f2(x1,x2):
                 return f(np.array([x1,x2]))
@@ -101,13 +102,13 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with ball constraint
     if constraint == 'ball':
-        x_pred = FISTA(grad,H,pball,start,num_iter,callback_func)
+        x_pred = FISTA(grad,L,pball,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
         if n == 2:
             fig,ax = plt.subplots()
-            xx = yy = np.arange(-5,5,0.5)
+            xx = yy = np.arange(-6,6,0.5)
             X,Y = np.meshgrid(xx,yy,sparse=True)
             def f2(x1,x2):
                 return f(np.array([x1,x2]))
@@ -120,13 +121,13 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with box constraint
     if constraint == 'box':
-        x_pred = FISTA(grad,H,pbox,start,num_iter,callback_func)
+        x_pred = FISTA(grad,L,pbox,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
         if n == 2:
             fig,ax = plt.subplots()
-            xx = yy = np.arange(-5,5,0.5)
+            xx = yy = np.arange(-6,6,0.5)
             X,Y = np.meshgrid(xx,yy,sparse=True)
             def f2(x1,x2):
                 return f(np.array([x1,x2]))
