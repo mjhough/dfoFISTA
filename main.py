@@ -60,7 +60,7 @@ if __name__ == "__main__":
     start = np.array([-5,-4])
 
     # Change constraint here
-    constraint = 'box'
+    constraint = None
 
     iters = np.empty((num_iter+1,2))
     iters[0,:] = start
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with no constraint
     if constraint == None:
-        x_pred = FISTA(grad,L,p_uc,start,num_iter,callback_func)
+        x_pred = FISTA(grad,p_uc,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
     
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with ball constraint
     if constraint == 'ball':
-        x_pred = FISTA(grad,L,pball,start,num_iter,callback_func)
+        x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     # Plotting the function contour and iterates with box constraint
     if constraint == 'box':
-        x_pred = FISTA(grad,L,pbox,start,num_iter,callback_func)
+        x_pred = FISTA(grad,pbox,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -141,5 +141,5 @@ if __name__ == "__main__":
 
     # Plot residuals
     plt.figure()
-    plt.plot(range(0,num_iter+1),res)
+    plt.semilogy(range(0,num_iter+1),res)
     plt.show()

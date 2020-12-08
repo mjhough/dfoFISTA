@@ -9,8 +9,8 @@ convex but not necessarily differentiable
 Input: (grad_g, p, L, x0, max_iter)
 - (function handle) grad_g = grad(g), where g is given by f = g + h
 - (function handle) p is a projection function that returns a vector in R^n
-- x0 is the initial iterate in R^n
 - L = Lf
+- x0 is the initial iterate in R^n
 - max_itr is the maxiumum number of FISTA steps to take
 
 Output:
