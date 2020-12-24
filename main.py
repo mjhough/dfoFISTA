@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from FISTA import FISTA
+from Dykstra import Dykstra
 
 # Unconstrained projection
 def p_uc(x):
@@ -31,16 +32,15 @@ def p_ball(x,c,r):
     return c + (r/np.max([np.linalg.norm(x-c),r]))*(x-c)
 
 '''
-Random l1-regularized linear least squares function in R^n
-(1/2)*||Ax-b||_2^2 + lmbda*||x||_1
+Linear least squares function in R^n
+(1/2)*||Ax-b||_2^2
 Input:
 - n: size of n x n matrix A
 - b: solution
-- lmbda: lambda constant in front of regularizer
 '''
-def gen_func(A,b,lmbda):
+def gen_func(A,b):
     def f(x):
-        return (np.linalg.norm(A@x - b)**2)/2 + lmbda*np.linalg.norm(x, ord=1)
+        return (np.linalg.norm(A@x - b)**2)/2
     def grad(x):
         return A.T @ (A@x - b)
     def H():
@@ -48,30 +48,52 @@ def gen_func(A,b,lmbda):
     return f,grad,H
 
 
+
+
+
+
+
 if __name__ == "__main__":
     n=2
     A = np.random.uniform(low=-5, high=5, size=(n,n))
     x = np.random.uniform(low=-5, high=5, size=(n,)) # soln
     b = A@x
-    lmbda = 0.01
+    delta = 1
 
     # Num iterations and starting point
     num_iter = 100
     start = np.array([-5,-4])
 
     # Change constraint here
-    constraint = None
+    constraint = 'ball'
 
     iters = np.empty((num_iter+1,2))
     iters[0,:] = start
-    res = [np.linalg.norm(x-start)]
+    status = []
+    grads = []
     # Callback function
-    def callback_func(curr_iter,xk):
-        res.append(np.linalg.norm(x - xk))
+    def callback_func(grad_f, curr_iter,xk,p):
         iters[curr_iter+1,:] = xk
 
+        # Call FISTA with f = grad^T*d to minimize d
+        def F(d):
+            return grad_f(xk).T @ d
+        def grad_F(d):
+            return grad_f(xk)
+
+        #  d_delta_ball = lambda d: p_ball(xk+d,xk,delta)
+        d_delta_ball = lambda dk: dk - dk*(np.absolute((dk.T @ dk) - delta)/(dk.T @ dk))
+        p2 = lambda dk: p(xk+dk)-xk
+        proj = lambda dk: Dykstra([p2,d_delta_ball],dk)
+
+        eLl = 1 # np.linalg.norm(np.identity(xk.shape[0]))
+        d0 = np.ones(xk.shape[0])
+        d = FISTA(grad_F,proj,eLl,d0,num_iter=20,callback=None)
+        status.append(abs(F(d)))
+        #  grads.append(np.linalg.norm(grad_f(xk)))
+
     # generate function
-    f,grad,H = gen_func(A,b,lmbda)
+    f,grad,H = gen_func(A,b)
     L = np.linalg.norm(H())
 
     # generate projection functions
@@ -139,7 +161,11 @@ if __name__ == "__main__":
                     box_u[1] - box_l[1], fill=False, color='w')
             ax.add_patch(rec)
 
+    plt.plot(x[0], x[1], color='w', marker='.')
+
     # Plot residuals
     plt.figure()
-    plt.semilogy(range(0,num_iter+1),res)
+    plt.semilogy(range(0,num_iter),status, 'b-', label='modified')
+    #  plt.semilogy(range(0,num_iter), grads, 'r-', label='grad')
+    plt.legend()
     plt.show()

@@ -3,11 +3,11 @@ import numpy as np
 """
 Projected gradient descent FISTA. Replaces prox operator with a projection
 onto the desired set
-f = g + h, g is convex, differentiable, and dom(g) = R^n, and h is
+f is convex, differentiable, and dom(g) = R^n, and h is
 convex but not necessarily differentiable
 
-Input: (grad_g, p, L, x0, max_iter)
-- (function handle) grad_g = grad(g), where g is given by f = g + h
+Input: (grad_f, p, L, x0, max_iter)
+- (function handle) grad_f = grad(f), where f is the objective function
 - (function handle) p is a projection function that returns a vector in R^n
 - L = Lf
 - x0 is the initial iterate in R^n
@@ -16,13 +16,13 @@ Input: (grad_g, p, L, x0, max_iter)
 Output:
 - Iterate x at k=max_iter
 """
-def FISTA(grad_g,p,L,x0,num_iter,callback=None):
+def FISTA(grad_f,p,L,x0,num_iter,callback=None):
     # Init
     y = x = x0; t = 1
 
     for k in range(num_iter):
        # a) take GD step and project
-       w = y - (1/L)*grad_g(y)
+       w = y - (1/L)*grad_f(y)
        prev_x = x
        x = p(w)
 
@@ -34,6 +34,6 @@ def FISTA(grad_g,p,L,x0,num_iter,callback=None):
        y = x + ((prev_t - 1)/(t))*(x - prev_x)
 
        if callback is not None:
-           callback(k,x)
+           callback(grad_f,k,x,p)
 
     return x

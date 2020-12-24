@@ -28,7 +28,7 @@ def Dykstra(P,x0,max_iter=10):
     # until reach tolerance level
     n = 0
     while mov > tol and n < M:
-        # b.1) project x - increment
+        # b.1) project (x - increment)
         prev_x = x
         x = P[n % r](prev_x - I[n % r,:])
 
@@ -37,4 +37,6 @@ def Dykstra(P,x0,max_iter=10):
         
         mov = np.linalg.norm(x - prev_x)
         n += 1
+
+        # TODO: Add robust stopping condition calculation here
     return x
