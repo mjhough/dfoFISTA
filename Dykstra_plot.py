@@ -12,8 +12,9 @@ def Dykstra2(P,x0,max_iter=1000):
 
     n = 0
     stop_cond = float('inf')
+    cI = float('inf')
     iters.append(x0)
-    while n < max_iter and stop_cond >= tol:
+    while n < max_iter and cI >= tol:
         stop_cond = 0
         cI = 0
         for i in range(0,p):
@@ -27,7 +28,7 @@ def Dykstra2(P,x0,max_iter=1000):
 
             # Stop conditions
             cI += np.linalg.norm(prev_y - y[i,:])**2
-            stop_cond += cI + 2*(prev_y.T @ (x - prev_x))
+            stop_cond += np.linalg.norm(prev_y - y[i,:])**2 + 2*(prev_y.T @ (x - prev_x))
 
             n += 1
             iters.append(x)
@@ -123,7 +124,8 @@ box_l = np.array([-5,-5])
 box_u = np.array([5,5])
 pbox = lambda x: p_box(x,box_l,box_u)
 
-Dykstra2([pbox,pball,pball2], np.array([0,-8]))
+soln = Dykstra2([pbox,pball,pball2], np.array([0,-8]))
+print(soln)
 
 fig,ax = plt.subplots()
 ax.axis('equal')

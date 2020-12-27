@@ -3,52 +3,45 @@ import matplotlib.pyplot as plt
 
 '''
 Dykstra's algorithm for the projection onto the
-intersection of closed convex sets, K.
+intersection of closed convex sets, K [1].
 
 Input:
 - P: An array of projection function handles onto
  closed convex sets, where P[i] projections onto
  a subset of the Hilbert space X for all i.
 - x0: A point in the Hilbert space X.
+- max_iter: Maximum number of outer iterations before
+stopping.
+- tol: The tolerance for the stopping condition c_I in paper [2].
 
 Output:
 - x: The point in the intersection of sets, K
 s.t. the distance between x and x0 is minimized.
+
+References:
+[1] R.L. Dykstra, 1983. An algorithm for restricted least squares regression.
+[2] E.G. Birgin & M. Raydan, 2004. Robust stopping criteria for Dykstra's algorithm.
 '''
-def Dykstra(P,x0,max_iter=10):
-    # a) initialize starting params
+def Dykstra(P,x0,max_iter=1000,tol=1e-6):
     x = x0
-    r = len(P)
-    M = max_iter*r # since r cycles per iteration
-    I = np.zeros((len(P),x0.shape[0]))
-    tol = 1e-6
-    mov = float('inf')
+    p = len(P)
+    y = np.zeros((p,x0.shape[0]))
 
-    # b) iteratively compute the projection
-    # until reach tolerance level
     n = 0
-    stop_cond = float('inf')
-    while n < M and ((n % r != 0) or (stop_cond >= tol)):
-        # If a new cycle
-        if n % r == 0:
-            # reset stopping conditions
-            stop_cond = 0
+    cI = float('inf')
+    while n < max_iter and cI >= tol:
+        cI = 0
+        for i in range(0,p):
+            # Update iterate
+            prev_x = x.copy()
+            x = P[i](prev_x - y[i,:])
 
-        # b.1) project (x - increment)
-        prev_x = x
-        x = P[n % r](prev_x - I[n % r,:])
+            # Update increment
+            prev_y = y[i,:].copy()
+            y[i,:] = x - (prev_x - prev_y)
 
-        # b.2) update increment
-        prev_I = I[n % r,:]
-        I[n % r,:] = x - (prev_x - prev_I)
-        
-        # Old stop condition
-        mov = np.linalg.norm(x - prev_x)
+            # Stop condition
+            cI += np.linalg.norm(prev_y - y[i,:])**2
 
-        # Stopping condition for this cycle
-        stop_cond += np.linalg.norm(prev_I - I[n % r,:]) + 2*(prev_I.T @ (x - prev_x))
-
-        print(stop_cond)
-
-        n += 1
+            n += 1
     return x
