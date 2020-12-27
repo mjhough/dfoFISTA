@@ -27,16 +27,28 @@ def Dykstra(P,x0,max_iter=10):
     # b) iteratively compute the projection
     # until reach tolerance level
     n = 0
-    while mov > tol and n < M:
+    stop_cond = float('inf')
+    while n < M and ((n % r != 0) or (stop_cond >= tol)):
+        # If a new cycle
+        if n % r == 0:
+            # reset stopping conditions
+            stop_cond = 0
+
         # b.1) project (x - increment)
         prev_x = x
         x = P[n % r](prev_x - I[n % r,:])
 
         # b.2) update increment
-        I[n % r,:] = x - (prev_x - I[n % r,:])
+        prev_I = I[n % r,:]
+        I[n % r,:] = x - (prev_x - prev_I)
         
+        # Old stop condition
         mov = np.linalg.norm(x - prev_x)
-        n += 1
 
-        # TODO: Add robust stopping condition calculation here
+        # Stopping condition for this cycle
+        stop_cond += np.linalg.norm(prev_I - I[n % r,:]) + 2*(prev_I.T @ (x - prev_x))
+
+        print(stop_cond)
+
+        n += 1
     return x
