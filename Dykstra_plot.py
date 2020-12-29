@@ -1,12 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pdb
 
 S = []
 iters = []
 CIs = []
 def Dykstra2(P,x0,max_iter=1000):
-    x = x0
     p = len(P)
+    x = np.zeros((p+1,x0.shape[0])) # iterates
+    x[-1,:] = x0
     y = np.zeros((p,x0.shape[0])) # increments
     tol = 1e-6
 
@@ -17,28 +19,30 @@ def Dykstra2(P,x0,max_iter=1000):
     while n < max_iter and cI >= tol:
         stop_cond = 0
         cI = 0
+        x[0,:] = x[-1,:]
         for i in range(0,p):
             # Update iterate
-            prev_x = x.copy()
-            x = P[i](prev_x - y[i,:])
+            prev_x = x[i+1,:].copy()
+            x[i+1,:] = P[i](x[i,:] - y[i,:])
 
             # Update increment
             prev_y = y[i,:].copy()
-            y[i,:] = x - (prev_x - prev_y)
+            y[i,:] = x[i+1,:] - (x[i,:] - prev_y)
 
             # Stop conditions
             cI += np.linalg.norm(prev_y - y[i,:])**2
-            stop_cond += np.linalg.norm(prev_y - y[i,:])**2 + 2*(prev_y.T @ (x - prev_x))
+            stop_cond += np.linalg.norm(prev_y - y[i,:])**2 + 2*(prev_y.T @ (x[i+1,:] - prev_x))
 
             n += 1
-            iters.append(x)
+            #  print(x[i+1,:])
+            iters.append(x[i+1,:].copy())
 
         # Plotting
         S.append(stop_cond)
         CIs.append(cI)
         print("ck - ck-1 =",stop_cond)
         print("cI =",cI)
-    return x
+    return x[-1,:]
 
 '''
 Dykstra's algorithm for the projection onto the
