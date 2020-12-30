@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from FISTA import FISTA
 from Dykstra import Dykstra
 
+from PGD import PGD
+
+import pdb
+
 # Unconstrained projection
 def p_uc(x):
     return x
@@ -61,36 +65,44 @@ if __name__ == "__main__":
     delta = 1
 
     # Num iterations and starting point
-    num_iter = 100
+    num_iter = 1000
     start = np.array([-5,-4])
 
     # Change constraint here
-    constraint = 'ball'
+    constraint = 'box'
 
+    count = 0
     iters = np.empty((num_iter+1,2))
     iters[0,:] = start
     status = []
+    ma_status = []
     grads = []
     # Callback function
-    def callback_func(grad_f, curr_iter,xk,p):
+    def callback_func(grad_f, curr_iter,xk,p,stat,ma_stat,grad_Fd):
+        global count
+        count += 1
         iters[curr_iter+1,:] = xk
 
-        # Call FISTA with f = grad^T*d to minimize d
+        # Call FISTA with F = grad_f^T*d to minimize d
         def F(d):
             return grad_f(xk).T @ d
         def grad_F(d):
             return grad_f(xk)
 
         #  d_delta_ball = lambda d: p_ball(xk+d,xk,delta)
-        d_delta_ball = lambda dk: dk - dk*(np.absolute((dk.T @ dk) - delta)/(dk.T @ dk))
-        p2 = lambda dk: p(xk+dk)-xk
-        proj = lambda dk: Dykstra([p2,d_delta_ball],dk)
+        #  d_delta_ball = lambda dk: dk - dk*(np.absolute((dk.T @ dk) - delta)/(dk.T @ dk))
+        #  p2 = lambda dk: p(xk+dk)-xk
+        #  proj = lambda dk: Dykstra([p2,d_delta_ball],dk)
 
-        eLl = 1 # np.linalg.norm(np.identity(xk.shape[0]))
-        d0 = np.ones(xk.shape[0])
-        d = FISTA(grad_F,proj,eLl,d0,num_iter=20,callback=None)
-        status.append(abs(F(d)))
+        #  eLl = 1 # np.linalg.norm(np.identity(xk.shape[0]))
+        #  d0 = np.ones(xk.shape[0])
+        #  d = FISTA(F,grad_F,proj,eLl,d0,max_iter=20,callback=None)
+        #  grads2.append(abs(F(d)))
         #  grads.append(np.linalg.norm(grad_f(xk)))
+        
+        status.append(stat)
+        ma_status.append(ma_stat)
+        #  grads.append(grad_Fd)
 
     # generate function
     f,grad,H = gen_func(A,b)
@@ -105,9 +117,14 @@ if __name__ == "__main__":
     box_u = np.array([1,1])
     pbox = lambda x: p_box(x,box_l,box_u)
 
+    #  x_pred = PGD(f,grad,[pball],L,start,num_iter)
+    #  print(x)
+    #  print(x_pred)
+
     # Plotting the function contour and iterates with no constraint
     if constraint == None:
-        x_pred = FISTA(grad,p_uc,L,start,num_iter,callback_func)
+        #  x_pred = FISTA(grad,p_uc,L,start,num_iter,callback_func)
+        x_pred = PGD(f,grad,[p_uc],L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
     
@@ -120,11 +137,12 @@ if __name__ == "__main__":
             f2_vec = np.vectorize(f2)
             zz = f2_vec(X,Y)
             ax.contourf(xx,yy,zz)
-            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+            ax.plot(iters[:count,0],iters[:count,1],marker='x',color='r')
 
     # Plotting the function contour and iterates with ball constraint
     if constraint == 'ball':
-        x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
+        #  x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
+        x_pred = PGD(f,grad,[pball],L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -137,13 +155,14 @@ if __name__ == "__main__":
             f2_vec = np.vectorize(f2)
             zz = f2_vec(X,Y)
             ax.contourf(xx,yy,zz)
-            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+            ax.plot(iters[:count,0],iters[:count,1],marker='x',color='r')
             cir = plt.Circle((1,1), ball_r, fill=False, color='w')
             ax.add_patch(cir)
 
     # Plotting the function contour and iterates with box constraint
     if constraint == 'box':
-        x_pred = FISTA(grad,pbox,L,start,num_iter,callback_func)
+        #  x_pred = FISTA(grad,pbox,L,start,num_iter,callback_func)
+        x_pred = PGD(f,grad,[pbox],L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -156,7 +175,7 @@ if __name__ == "__main__":
             f2_vec = np.vectorize(f2)
             zz = f2_vec(X,Y)
             ax.contourf(xx,yy,zz)
-            ax.plot(iters[:,0],iters[:,1],marker='x',color='r')
+            ax.plot(iters[:count,0],iters[:count,1],marker='x',color='r')
             rec = plt.Rectangle((box_l[0], box_l[1]), box_u[0] - box_l[0],
                     box_u[1] - box_l[1], fill=False, color='w')
             ax.add_patch(rec)
@@ -165,7 +184,8 @@ if __name__ == "__main__":
 
     # Plot residuals
     plt.figure()
-    plt.semilogy(range(0,num_iter),status, 'b-', label='modified')
-    #  plt.semilogy(range(0,num_iter), grads, 'r-', label='grad')
+    plt.semilogy(range(0,len(status)),status, 'b-', label='diff')
+    plt.semilogy(range(0,len(ma_status)),ma_status, 'r-.', label='ma')
+    #  plt.semilogy(range(0,len(grads)),grads, 'k--', label='grad')
     plt.legend()
     plt.show()

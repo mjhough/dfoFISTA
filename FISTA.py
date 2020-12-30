@@ -16,11 +16,13 @@ Input: (grad_f, p, L, x0, max_iter)
 Output:
 - Iterate x at k=max_iter
 """
-def FISTA(grad_f,p,L,x0,num_iter,callback=None):
+def FISTA(f,grad_f,p,L,x0,max_iter=100,tol=1e-6,callback=None):
     # Init
     y = x = x0; t = 1
-
-    for k in range(num_iter):
+    stat = float('inf')
+    
+    k = 0
+    while k < max_iter and stat >= tol:
        # a) take GD step and project
        w = y - (1/L)*grad_f(y)
        prev_x = x
@@ -33,7 +35,12 @@ def FISTA(grad_f,p,L,x0,num_iter,callback=None):
        # c) compute next y
        y = x + ((prev_t - 1)/(t))*(x - prev_x)
 
+       # d) compute stationarity
+       stat = abs(f(prev_x) - f(x))
+
        if callback is not None:
            callback(grad_f,k,x,p)
+
+       k += 1
 
     return x
