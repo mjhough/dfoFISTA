@@ -36,6 +36,16 @@ def p_ball(x,c,r):
     return c + (r/np.max([np.linalg.norm(x-c),r]))*(x-c)
 
 '''
+Halfspace constrainted projection
+Input:
+- x: vector to project
+- a: vector a s.t. a^T @ x <= b
+- b: constant b s.t. a^T @ x <= b
+'''
+def p_halfspace(x,a,b):
+    return x - a*(abs(a.T @ x - b)/(a.T @ a))
+
+'''
 Linear least squares function in R^n
 (1/2)*||Ax-b||_2^2
 Input:
@@ -54,9 +64,6 @@ def gen_func(A,b):
 
 
 
-
-
-
 if __name__ == "__main__":
     n=2
     A = np.random.uniform(low=-5, high=5, size=(n,n))
@@ -69,7 +76,7 @@ if __name__ == "__main__":
     start = np.array([-5,-4])
 
     # Change constraint here
-    constraint = 'box'
+    constraint = 'triple'
 
     count = 0
     iters = np.empty((num_iter+1,2))
@@ -117,6 +124,10 @@ if __name__ == "__main__":
     box_u = np.array([1,1])
     pbox = lambda x: p_box(x,box_l,box_u)
 
+    a = [1,1]
+    bconst = 0.2
+    phalf = lambda x: p_halfspace(x,np.array(a),bconst)
+
     #  x_pred = PGD(f,grad,[pball],L,start,num_iter)
     #  print(x)
     #  print(x_pred)
@@ -124,7 +135,8 @@ if __name__ == "__main__":
     # Plotting the function contour and iterates with no constraint
     if constraint == None:
         #  x_pred = FISTA(grad,p_uc,L,start,num_iter,callback_func)
-        x_pred = PGD(f,grad,[p_uc],L,start,num_iter,callback_func)
+        constraints = [p_uc]
+        x_pred = PGD(f,grad,constraints,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
     
@@ -142,7 +154,8 @@ if __name__ == "__main__":
     # Plotting the function contour and iterates with ball constraint
     if constraint == 'ball':
         #  x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
-        x_pred = PGD(f,grad,[pball],L,start,num_iter,callback_func)
+        constraints = [pball]
+        x_pred = PGD(f,grad,constraints,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -162,7 +175,8 @@ if __name__ == "__main__":
     # Plotting the function contour and iterates with box constraint
     if constraint == 'box':
         #  x_pred = FISTA(grad,pbox,L,start,num_iter,callback_func)
-        x_pred = PGD(f,grad,[pbox],L,start,num_iter,callback_func)
+        constraints = [pbox]
+        x_pred = PGD(f,grad,constraints,L,start,num_iter,callback_func)
         print(x)
         print(x_pred)
 
@@ -180,7 +194,66 @@ if __name__ == "__main__":
                     box_u[1] - box_l[1], fill=False, color='w')
             ax.add_patch(rec)
 
+    if constraint == 'both':
+        #  x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
+        constraints = [pball,pbox]
+        x_pred = PGD(f,grad,constraints,L,start,num_iter,callback_func)
+        print(x)
+        print(x_pred)
+
+        if n == 2:
+            fig,ax = plt.subplots()
+            xx = yy = np.arange(-6,6,0.5)
+            X,Y = np.meshgrid(xx,yy,sparse=True)
+            def f2(x1,x2):
+                return f(np.array([x1,x2]))
+            f2_vec = np.vectorize(f2)
+            zz = f2_vec(X,Y)
+            ax.contourf(xx,yy,zz)
+            ax.plot(iters[:count,0],iters[:count,1],marker='x',color='r')
+            cir = plt.Circle((1,1), ball_r, fill=False, color='w')
+            ax.add_patch(cir)
+            rec = plt.Rectangle((box_l[0], box_l[1]), box_u[0] - box_l[0],
+                    box_u[1] - box_l[1], fill=False, color='w')
+            ax.add_patch(rec)
+
+    if constraint == 'triple':
+        #  x_pred = FISTA(grad,pball,L,start,num_iter,callback_func)
+        constraints = [pball,pbox,phalf]
+        x_pred = PGD(f,grad,constraints,L,start,num_iter,callback_func)
+        print(x)
+        print(x_pred)
+
+        if n == 2:
+            fig,ax = plt.subplots()
+            xx = yy = np.arange(-6,6,0.5)
+            X,Y = np.meshgrid(xx,yy,sparse=True)
+            def f2(x1,x2):
+                return f(np.array([x1,x2]))
+            f2_vec = np.vectorize(f2)
+            zz = f2_vec(X,Y)
+            ax.contourf(xx,yy,zz)
+            ax.plot(iters[:count,0],iters[:count,1],marker='x',color='r')
+            cir = plt.Circle((1,1), ball_r, fill=False, color='w')
+            ax.add_patch(cir)
+            rec = plt.Rectangle((box_l[0], box_l[1]), box_u[0] - box_l[0],
+                    box_u[1] - box_l[1], fill=False, color='w')
+            ax.add_patch(rec)
+            line_x = np.linspace(-5,5,12)
+            line_y = -1*line_x + bconst
+            ax.plot(line_x,line_y, color='w')
+
+            if x_pred[0]+x_pred[1] <= 0.2 and (box_l[0] <= x_pred[0] <= box_u[0] and box_l[1] <= x_pred[1] <= box_u[1]) and ((x_pred[0]-1)**2 + (x_pred[1]-1)**2 <= 2**2):
+                print("In constraint set")
+            else:
+                print(f'x+y = {x_pred[0]+x_pred[1]} (0.2), point: ({x_pred[0]},{x_pred[1]}), box upper: {box_u}, box lower: {box_l}, (x-1)^2+(y-1)^2 = {(x_pred[0]-1)**2 + (x_pred[1]-1)**2} (<=4)')
+
     plt.plot(x[0], x[1], color='w', marker='.')
+
+    # Check the difference between the projection onto the constraint set
+    # and the obtained solution.
+    proj_x = Dykstra(constraints,x_pred)
+    print("Proj diff norm =",np.linalg.norm(proj_x-x_pred))
 
     # Plot residuals
     plt.figure()

@@ -24,7 +24,7 @@ Input: (grad_f, P, L, x0, max_iter)
 Output:
 - Iterate x after the max number of iterations or after converged within tolerance.
 """
-def PGD(f,grad_f,P,L,x0,max_iter=100000,callback_func=None,tol=1e-13):
+def PGD(f,grad_f,P,L,x0,max_iter=100000,callback_func=None,tol=1e-12):
     # Init
     y = x = x0; t = 1
     proj = lambda w: Dykstra(P,w)
